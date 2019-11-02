@@ -10,9 +10,50 @@
 class RegexpParser {
 public:
     explicit RegexpParser(std::string &str, std::string& _regexp_rpn) : initial_string(str), regexp_rpn(_regexp_rpn) {
+        BuildStacks();
+        if(regular_stack.size() > 1){
+            is_incorrect = true;
+        }
+    }
+    std::string GetCommonRegexp(){
+        if(is_incorrect){
+            return "";
+        }
+        return regular_stack.top();
+    }
+    std::string GetMaxSubsting(){
+        if(is_incorrect){
+            return "Incorrect input: regexp is wrong";
+        }
+        if(substr_stack.empty()){
+            return "";
+        }
+        /*for(auto p: substr_stack.top()){
+            std::cout << initial_string.substr(p.first, p.second - p.first) << "\n";
+        }*/
+        /*
+         * Get maximal substr of init str belonging to the Lang(regexp)
+         */
+        int32_t cur_length = - 1;
+        std::pair<uint32_t ,uint32_t > cur_pair;
+        for(auto substr: substr_stack.top()){
+            int32_t first = substr.first;
+            int32_t second = substr.second;
+            if(second - first > cur_length){
+                cur_length = second - first;
+                cur_pair = std::make_pair(first, second);
+            }
+        }
+        return initial_string.substr(cur_pair.first, cur_length);
+    }
+    int32_t GetMaxSubstrLength(){
+        if(is_incorrect) {
+            return std::numeric_limits<int32_t>::max();
+        }
+        return GetMaxSubsting().size();
     }
 
-//private:
+private:
     void BuildStacks() {
         /*
          * regexp_rpn - regular exp. in reverse polish notation.
@@ -27,6 +68,9 @@ public:
                         substr_stack.top().emplace(i, i + 1);
                     }
                 }
+                /*for(auto p: substr_stack.top()){
+                    std::cout << initial_string.substr(p.first, p.second - p.first) << "\n";
+                }*/
             } else {
                 if (operands.find(elem) == operands.end()
                     || ((elem == '+' || elem == '.') && regular_stack.size() < 2)
@@ -41,49 +85,68 @@ public:
                     std::string merging_string = regular_stack.top();
                     regular_stack.pop();
                     regular_stack.top() += '+' + merging_string;
+                    regular_stack.top().insert(0, "(");
+                    regular_stack.top().push_back(')');
                     std::set<std::pair<uint32_t, uint32_t >> merging_set = std::move(substr_stack.top());
                     substr_stack.pop();
-                    std::copy(merging_set.begin(), merging_set.end(),
-                              std::back_inserter(substr_stack.top()));
+                    substr_stack.top().insert(merging_set.begin(), merging_set.end());
                     /* just combined the elements of last two vectors*/
                 }
                 else if (elem == '.'){
                     std::string merging_string = regular_stack.top();
                     regular_stack.pop();
-                    std::vector<std::pair<uint32_t, uint32_t>> result_vector;
                     regular_stack.top() += merging_string;
-                    std::set<std::pair<uint32_t, uint32_t >> merging_set = std::move(substr_stack.top());
+                    std::set<std::pair<uint32_t, uint32_t >> snd_merging_set = std::move(substr_stack.top());
                     substr_stack.pop();
-                    for(auto first_pair: substr_stack.top()){
-                        for(auto second_pair: merging_set){
+                    std::set<std::pair<uint32_t, uint32_t >> fst_merging_set = std::move(substr_stack.top());
+                    substr_stack.pop();
+                    substr_stack.push(std::set<std::pair<uint32_t, uint32_t >>());
+                    for(auto first_pair: fst_merging_set){
+                        for(auto second_pair: snd_merging_set){
                             if(first_pair.second == second_pair.first){
-                                result_vector.emplace_back(first_pair.first, second_pair.second);
+                                substr_stack.top().emplace(first_pair.first, second_pair.second);
                             }
                         }
                     }
+                    /*for(auto p: substr_stack.top()){
+                        std::cout << initial_string.substr(p.first, p.second - p.first) << "\n";
+                    }*/
+
                 }
                 else{ /* elem == * */
-                    regular_stack.top() += elem;
+                    regular_stack.top().insert(0, "(");
+                    regular_stack.top() += ")*";
                     for(size_t i = 0; i < initial_string.size(); ++i){
                         substr_stack.top().emplace(i,i); /* empty substrings are fine too */
                     }
+
                     bool is_finished;
                     do{
                         is_finished = true;
                         /*add substring untill it is possible |init_sub| < +inf => it'll be finished */
+                        std::set<std::pair<uint32_t ,uint32_t >> new_substrings;
                         for(auto first_pair: substr_stack.top()){
                             for(auto second_pair: substr_stack.top()){
-                                if(first_pair.second - first_pair.first == 0
-                                    || second_pair.second - second_pair.first == 0){
+                                if((first_pair.second - first_pair.first == 0)
+                                   || (second_pair.second - second_pair.first == 0)){
                                     /*do not add unnecessary string!*/
                                     continue;
                                 }
-                                if (first_pair.second = second_pair.first){
-                                    substr_stack.top().emplace(first_pair.first, second_pair.second);
-                                    is_finished = false;
+                                if (first_pair.second == second_pair.first){
+                                    //std::cout << first_pair.first << " " << first_pair.second << " " <<
+                                    //second_pair.first << " " << second_pair.second << "\n";
+                                    std::pair<uint32_t, uint32_t > candidate {first_pair.first, second_pair.second};
+                                    if(substr_stack.top().find(candidate) == substr_stack.top().end()){
+                                        new_substrings.emplace(first_pair.first, second_pair.second);
+                                        is_finished = false;
+                                    }
                                 }
                             }
                         }
+                        substr_stack.top().insert(new_substrings.begin(), new_substrings.end());
+                        /*for(auto p: new_substrings){
+                            std::cout << initial_string.substr(p.first, p.second - p.first) << "\n";
+                        }*/
                     } while(!is_finished);
                 }
 
@@ -108,11 +171,8 @@ public:
 
 
 int main() {
-    std::string str = "abbcacababaac";
-    std::string regexp = "ab+c.aba.∗.bac.+.+∗";
+    std::string str = "abbaa";
+    std::string regexp = "acb..bab.c.*.ab.ba.+.+*a.";
     RegexpParser parser(str, regexp);
-    parser.BuildStacks();
-    std::cout << parser.regular_stack.top();
-
-
+    std::cout << parser.GetMaxSubstrLength();
 }
