@@ -3,7 +3,7 @@
 RegexpParser::RegexpParser(const std::string &str, const std::string &_regexp_rpn) : initial_string(str),
                                                                                      regexp_rpn(_regexp_rpn) {
     BuildStacks();
-    if (regular_stack.size() > 1) {
+    if (regular_stack.size() != 1) {
         is_incorrect = true;
     }
 }
@@ -19,7 +19,7 @@ std::string RegexpParser::GetMaxSubstring() const {
     if (is_incorrect) {
         return "Incorrect input: regexp is wrong";
     }
-    if (substr_stack.empty()) {
+    if (substr_stack.top().empty()) {
         return "";
     }
     /*for(auto p: substr_stack.top()){

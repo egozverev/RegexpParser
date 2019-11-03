@@ -11,7 +11,6 @@
 #include "regexp_parser.h"
 
 
-
 int main(int argc, char **argv) {
     /*std::string str = "abbaa";
     std::string regexp = "acb..bab.c.*.ab.ba.+.+*a.";
