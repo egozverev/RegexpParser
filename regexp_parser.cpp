@@ -22,12 +22,7 @@ std::string RegexpParser::GetMaxSubstring() const {
     if (substr_stack.top().empty()) {
         return "";
     }
-    /*for(auto p: substr_stack.top()){
-        std::cout << initial_string.substr(p.first, p.second - p.first) << "\n";
-    }*/
-    /*
-     * Get maximal substr of init str belonging to the Lang(regexp)
-     */
+
     int32_t cur_length = -1;
     std::pair<uint32_t, uint32_t> cur_pair;
     for (auto substr: substr_stack.top()) {
@@ -62,9 +57,6 @@ void RegexpParser::BuildStacks() {
                     substr_stack.top().emplace(i, i + 1);
                 }
             }
-            /*for(auto p: substr_stack.top()){
-                std::cout << initial_string.substr(p.first, p.second - p.first) << "\n";
-            }*/
         } else {
             if (operands.find(elem) == operands.end()
                 || ((elem == '+' || elem == '.') && regular_stack.size() < 2)
@@ -101,9 +93,7 @@ void RegexpParser::BuildStacks() {
                         }
                     }
                 }
-                /*for(auto p: substr_stack.top()){
-                    std::cout << initial_string.substr(p.first, p.second - p.first) << "\n";
-                }*/
+
 
             } else { /* elem == * */
                 regular_stack.top().insert(0, "(");
@@ -125,8 +115,6 @@ void RegexpParser::BuildStacks() {
                                 continue;
                             }
                             if (first_pair.second == second_pair.first) {
-                                //std::cout << first_pair.first << " " << first_pair.second << " " <<
-                                //second_pair.first << " " << second_pair.second << "\n";
                                 std::pair<uint32_t, uint32_t> candidate{first_pair.first, second_pair.second};
                                 if (substr_stack.top().find(candidate) == substr_stack.top().end()) {
                                     new_substrings.emplace(first_pair.first, second_pair.second);
@@ -136,9 +124,6 @@ void RegexpParser::BuildStacks() {
                         }
                     }
                     substr_stack.top().insert(new_substrings.begin(), new_substrings.end());
-                    /*for(auto p: new_substrings){
-                        std::cout << initial_string.substr(p.first, p.second - p.first) << "\n";
-                    }*/
                 } while (!is_finished);
             }
 
